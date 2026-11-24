@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / OS
+.vscode/
+.DS_Store
+
+# Environment variables
+.env
+.env.*
+
+# Runtime outputs & large binary artifacts
+logs/
+models/
+data/acts/pdfs/
+data/qdrant_storage/
+data/knowledge_base/generated/
+data/knowledge_base/exports/
+data/exports/
+data/precedents/

@@ -1,6 +1,6 @@
-BarristerAI Milestone 1 Validation
+BarristerAI Validation
 ========================================
-Passed : 17
+Passed : 25
 Failed : 0
 
 STATUS : READY
