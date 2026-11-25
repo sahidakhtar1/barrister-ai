@@ -2,43 +2,25 @@
 
 from __future__ import annotations
 
-import io
 import unittest
 from unittest.mock import patch
 
+from fastapi.testclient import TestClient
+
 from barrister_ai.ui import (
     TEMPLATES_DIR,
-    create_ui_server,
+    app,
+    create_app,
     get_home_html_path,
     load_home_html,
+    serve_ui,
 )
-from barrister_ai.ui.app import _UIRequestHandler
-
-
-class _FakeSocket:
-    def __init__(self, request_bytes: bytes) -> None:
-        self._rfile = io.BytesIO(request_bytes)
-        self.wfile = io.BytesIO()
-
-    def makefile(self, mode: str, *_args, **_kwargs):
-        return self._rfile if "r" in mode else self.wfile
-
-    def sendall(self, data: bytes) -> None:
-        self.wfile.write(data)
-
-
-def _dispatch_get(path: str) -> bytes:
-    sock = _FakeSocket(f"GET {path} HTTP/1.1\r\nHost: localhost\r\n\r\n".encode("ascii"))
-    _UIRequestHandler(
-        sock,
-        ("127.0.0.1", 0),
-        None,
-        directory=str(TEMPLATES_DIR),
-    )
-    return sock.wfile.getvalue()
 
 
 class TestUIModule(unittest.TestCase):
+    def setUp(self) -> None:
+        self.client = TestClient(create_app())
+
     def test_home_template_exists_and_loads(self) -> None:
         path = get_home_html_path()
         self.assertTrue(path.exists())
@@ -46,23 +28,34 @@ class TestUIModule(unittest.TestCase):
         html = load_home_html()
         self.assertIn("<form", html)
         self.assertIn("queryForm", html)
+        self.assertIn("/baristerai/query", html)
+        self.assertIn("JSON.stringify({ queryText })", html)
+        self.assertIn('<button id="submitBtn" type="submit" disabled>', html)
+        self.assertIn("input.value.trim().length === 0", html)
 
-    def test_ui_handler_serves_health_and_index(self) -> None:
-        health_raw = _dispatch_get("/health").decode("utf-8")
-        self.assertIn("200 OK", health_raw)
-        self.assertIn('{"status":"ok"}', health_raw)
+    def test_ui_serves_health_and_index_only(self) -> None:
+        health_resp = self.client.get("/health")
+        self.assertEqual(health_resp.status_code, 200)
+        self.assertEqual(health_resp.json(), {"status": "ok"})
 
-        index_raw = _dispatch_get("/").decode("utf-8")
-        self.assertIn("200 OK", index_raw)
-        self.assertIn("PROCESS QUERY", index_raw)
+        index_resp = self.client.get("/")
+        self.assertEqual(index_resp.status_code, 200)
+        self.assertIn("text/html", index_resp.headers["content-type"])
+        self.assertIn("PROCESS QUERY", index_resp.text)
 
-    def test_create_ui_server_wires_templates_directory(self) -> None:
-        with patch("barrister_ai.ui.app.ThreadingHTTPServer") as mock_server:
-            create_ui_server(host="127.0.0.1", port=8080)
-            mock_server.assert_called_once()
-            addr, handler = mock_server.call_args[0]
-            self.assertEqual(addr, ("127.0.0.1", 8080))
-            self.assertEqual(handler.keywords["directory"], str(TEMPLATES_DIR))
+        api_resp = self.client.post("/baristerai/query", json={"queryText": "test"})
+        self.assertEqual(api_resp.status_code, 404)
+
+    def test_create_app_injects_custom_api_base_url(self) -> None:
+        custom_client = TestClient(create_app(api_base_url="http://localhost:9000/"))
+        resp = custom_client.get("/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('window.BARRISTER_API_URL = "http://localhost:9000";', resp.text)
+
+    def test_serve_ui_starts_uvicorn(self) -> None:
+        with patch("barrister_ai.ui.app.uvicorn.run") as mock_run:
+            serve_ui(host="127.0.0.1", port=8080)
+            mock_run.assert_called_once_with(app, host="127.0.0.1", port=8080)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from barrister_ai.api import serve_api
 from barrister_ai.citation_validation import extract_citation_details, validate_citation
 from barrister_ai.config import get_settings
 from barrister_ai.retrieval import LegalPrecedentSearchEngine
@@ -43,9 +44,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional override path to legal_cases.json.",
     )
 
+    api_cmd = subparsers.add_parser("serve-api", help="Serve the Barrister_AI REST API.")
+    api_cmd.add_argument("--host", default="127.0.0.1", help="Bind address.")
+    api_cmd.add_argument("--port", type=int, default=8000, help="Port number.")
+
     ui_cmd = subparsers.add_parser("serve-ui", help="Serve the Barrister_AI Web UI.")
     ui_cmd.add_argument("--host", default="127.0.0.1", help="Bind address.")
     ui_cmd.add_argument("--port", type=int, default=8080, help="Port number.")
+    ui_cmd.add_argument(
+        "--api-url",
+        default=None,
+        help="Optional base URL of the Barrister_AI REST API (e.g., http://127.0.0.1:8000).",
+    )
 
     return parser
 
@@ -82,8 +92,12 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(results, indent=2, ensure_ascii=False))
         return 0
 
+    if args.command == "serve-api":
+        serve_api(host=args.host, port=args.port)
+        return 0
+
     if args.command == "serve-ui":
-        serve_ui(host=args.host, port=args.port)
+        serve_ui(host=args.host, port=args.port, api_base_url=args.api_url)
         return 0
 
     parser.print_help()

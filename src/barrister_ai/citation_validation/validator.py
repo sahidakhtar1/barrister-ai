@@ -101,7 +101,7 @@ def validate_citation(citation: str) -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    sample = (
+    sample = (   
         "The Carriage of Goods by Sea Act, 2025 Every notification issued under "
         "this Act shall be laid, as soon as may be after it is issued, before each "
         "House of Parliament, while it is in session, for a total period of thirty "

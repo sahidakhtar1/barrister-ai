@@ -29,9 +29,12 @@ Broken into small, testable submodules with dependency injection:
 ### 4. Query Classification (`classification/`)
 - `case_type.py`: `CaseTypeClassifier` encoding legal queries with SentenceTransformers (`all-MiniLM-L6-v2`) and classifying case domains using `LogisticRegression` or incremental `SGDClassifier`.
 
-### 5. Web UI (`ui/`)
-- `app.py`: Static asset loader and HTTP server (`serve_ui`, `create_ui_server`) with `/health` check.
-- `templates/index.html`: Legal query submission interface targeting `/api/query`.
+### 5. REST API (`api/`)
+- `app.py`: FastAPI REST API (`create_api_app`, `app`), Uvicorn runner (`serve_api`), and query processor (`process_query`) with `GET /health` and `POST /baristerai/query`.
 
-### 6. CLI Entry Point (`main.py`)
-Provides subcommands: `info`, `parse-citation`, `validate-citation`, `search`, and `serve-ui`.
+### 6. Web UI (`ui/`)
+- `app.py`: FastAPI Web UI server (`create_app`, `app`, `serve_ui`) and template loader (`load_home_html`) serving `index.html` and `/health`.
+- `templates/index.html`: Legal query submission interface calling `${API_BASE_URL}/baristerai/query`.
+
+### 7. CLI Entry Point (`main.py`)
+Provides subcommands: `info`, `parse-citation`, `validate-citation`, `search`, `serve-api`, and `serve-ui`.

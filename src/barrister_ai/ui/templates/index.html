@@ -26,8 +26,9 @@
       background: #142538; color: #fff; font-size: 13px;
       font-weight: 700; letter-spacing: .4px; cursor: pointer;
     }
-    button:hover { background: #263f56; }
-    button:disabled { opacity: .6; cursor: wait; }
+    button:not(:disabled):hover { background: #263f56; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.loading:disabled { opacity: .6; cursor: wait; }
     #result {
       display: none; margin-top: 20px; padding: 18px;
       border: 1px solid #e3dfd6; border-radius: 10px;
@@ -42,26 +43,41 @@
     <textarea id="query" name="query" required maxlength="10000"
       placeholder="Enter your legal query…"></textarea>
     <div class="actions">
-      <button id="submitBtn" type="submit">PROCESS QUERY</button>
+      <button id="submitBtn" type="submit" disabled>PROCESS QUERY</button>
     </div>
     <div id="result" aria-live="polite"></div>
   </form>
 
   <script>
-    // Change this URL to your backend endpoint.
-    const API_URL = "http://localhost:8000/api/query";
+    const API_BASE_URL = (
+      window.BARRISTER_API_URL
+      || (window.location.hostname
+        ? `${window.location.protocol}//${window.location.hostname}:8000`
+        : "http://127.0.0.1:8000")
+    ).replace(/\/+$/, "");
+    const API_URL = `${API_BASE_URL}/baristerai/query`;
 
     const form = document.getElementById("queryForm");
     const input = document.getElementById("query");
     const button = document.getElementById("submitBtn");
     const result = document.getElementById("result");
+    let isSubmitting = false;
+
+    function updateSubmitState() {
+      button.disabled = isSubmitting || input.value.trim().length === 0;
+    }
+
+    input.addEventListener("input", updateSubmitState);
+    updateSubmitState();
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const query = input.value.trim();
-      if (!query) return;
+      const queryText = input.value.trim();
+      if (!queryText || isSubmitting) return;
 
-      button.disabled = true;
+      isSubmitting = true;
+      button.classList.add("loading");
+      updateSubmitState();
       button.textContent = "PROCESSING…";
       result.style.display = "block";
       result.classList.remove("error");
@@ -71,7 +87,7 @@
         const response = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query })
+          body: JSON.stringify({ queryText })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -84,8 +100,10 @@
         result.classList.add("error");
         result.textContent = `${error.message}\n\nCheck the API URL, server status and CORS configuration.`;
       } finally {
-        button.disabled = false;
+        isSubmitting = false;
+        button.classList.remove("loading");
         button.textContent = "PROCESS QUERY";
+        updateSubmitState();
       }
     });
   </script>

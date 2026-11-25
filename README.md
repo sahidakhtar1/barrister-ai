@@ -4,7 +4,8 @@ Barrister-AI is a modular AI legal engineering platform providing:
 1. **Citation Validation** (`barrister_ai.citation_validation`) — regex-based citation parsing, PostgreSQL Act/Section corpus lookup, Qdrant semantic Act search, India Code ingestion, and LLM-grounded verification.
 2. **Legal Precedent Retrieval** (`barrister_ai.retrieval`) — TF-IDF and cosine-similarity search across legal cases.
 3. **Query Classification** (`barrister_ai.classification`) — SBERT + linear classifier for legal case-type routing.
-4. **Web UI** (`barrister_ai.ui`) — lightweight frontend query interface.
+4. **REST API** (`barrister_ai.api`) — FastAPI backend service exposing `POST /baristerai/query`.
+5. **Web UI** (`barrister_ai.ui`) — lightweight frontend query interface.
 
 ## Project Structure
 
@@ -25,6 +26,7 @@ barrister-ai/
 │       │   └── ingestion/                # PostgreSQL loader & India Code scraper
 │       ├── retrieval/                    # TF-IDF precedent search
 │       ├── classification/               # Case-type query classifier
+│       ├── api/                          # FastAPI REST API service
 │       └── ui/                           # Static HTML UI & server
 ├── scripts/
 │   ├── setup/                            # Project & knowledge base setup scripts
@@ -55,8 +57,11 @@ PYTHONPATH=src python -m barrister_ai.main parse-citation "Section 138 of the Ne
 # Search legal precedents
 PYTHONPATH=src python -m barrister_ai.main search "cheque dishonoured insufficient funds"
 
-# Serve the Web UI
-PYTHONPATH=src python -m barrister_ai.main serve-ui --port 8080
+# Serve the REST API (port 8000)
+python -m barrister_ai.main serve-api --port 8000
+
+# Serve the Web UI (port 8080)
+python -m barrister_ai.main serve-ui --port 8080
 
 # Run unit tests
 PYTHONPATH=src python -m unittest discover -s tests -v

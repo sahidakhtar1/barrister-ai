@@ -1,8 +1,9 @@
-"""Web UI module for serving the Barrister_AI query interface."""
+"""Web UI module for serving the Barrister_AI frontend interface."""
 
 from barrister_ai.ui.app import (
     TEMPLATES_DIR,
-    create_ui_server,
+    app,
+    create_app,
     get_home_html_path,
     load_home_html,
     serve_ui,
@@ -10,7 +11,8 @@ from barrister_ai.ui.app import (
 
 __all__ = [
     "TEMPLATES_DIR",
-    "create_ui_server",
+    "app",
+    "create_app",
     "get_home_html_path",
     "load_home_html",
     "serve_ui",
