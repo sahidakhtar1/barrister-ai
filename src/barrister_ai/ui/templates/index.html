@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Legal Query</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center;
+      padding: 24px; background: #f7f5f0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .query-form { width: min(100%, 760px); }
+    textarea {
+      display: block; width: 100%; min-height: 190px; resize: vertical;
+      padding: 18px; border: 1px solid #d9d6ce; border-radius: 12px;
+      background: #fff; color: #172536; font: 15px/1.6 inherit;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    textarea:focus { border-color: #b99a62; box-shadow: 0 0 0 3px rgba(185,154,98,.14); }
+    textarea::placeholder { color: #9aa1a8; }
+    .actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+    button {
+      border: 0; border-radius: 8px; padding: 13px 22px;
+      background: #142538; color: #fff; font-size: 13px;
+      font-weight: 700; letter-spacing: .4px; cursor: pointer;
+    }
+    button:not(:disabled):hover { background: #263f56; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.loading:disabled { opacity: .6; cursor: wait; }
+    #result {
+      display: none; margin-top: 20px; padding: 18px;
+      border: 1px solid #e3dfd6; border-radius: 10px;
+      background: #fff; color: #263443; font-size: 14px;
+      line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    #result.error { color: #a33c36; background: #fff7f5; border-color: #f0d7d2; }
+  </style>
+</head>
+<body>
+  <form class="query-form" id="queryForm">
+    <textarea id="query" name="query" required maxlength="10000"
+      placeholder="Enter your legal query…"></textarea>
+    <div class="actions">
+      <button id="submitBtn" type="submit" disabled>PROCESS QUERY</button>
+    </div>
+    <div id="result" aria-live="polite"></div>
+  </form>
+
+  <script>
+    const API_BASE_URL = (
+      window.BARRISTER_API_URL
+      || (window.location.hostname
+        ? `${window.location.protocol}//${window.location.hostname}:8000`
+        : "http://127.0.0.1:8000")
+    ).replace(/\/+$/, "");
+    const API_URL = `${API_BASE_URL}/baristerai/query`;
+
+    const form = document.getElementById("queryForm");
+    const input = document.getElementById("query");
+    const button = document.getElementById("submitBtn");
+    const result = document.getElementById("result");
+    let isSubmitting = false;
+
+    function updateSubmitState() {
+      button.disabled = isSubmitting || input.value.trim().length === 0;
+    }
+
+    input.addEventListener("input", updateSubmitState);
+    updateSubmitState();
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const queryText = input.value.trim();
+      if (!queryText || isSubmitting) return;
+
+      isSubmitting = true;
+      button.classList.add("loading");
+      updateSubmitState();
+      button.textContent = "PROCESSING…";
+      result.style.display = "block";
+      result.classList.remove("error");
+      result.textContent = "Processing your query…";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ queryText })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.detail || data.message || `Request failed (${response.status})`);
+        }
+        const answer = data.answer ?? data.response ?? data.result ?? data;
+        result.textContent = typeof answer === "string"
+          ? answer : JSON.stringify(answer, null, 2);
+      } catch (error) {
+        result.classList.add("error");
+        result.textContent = `${error.message}\n\nCheck the API URL, server status and CORS configuration.`;
+      } finally {
+        isSubmitting = false;
+        button.classList.remove("loading");
+        button.textContent = "PROCESS QUERY";
+        updateSubmitState();
+      }
+    });
+  </script>
+</body>
+</html>
