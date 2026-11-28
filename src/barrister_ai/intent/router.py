@@ -91,6 +91,7 @@ class IntentRouter:
         * All additional keys returned by the chosen agent (e.g. ``cases``,
           ``validation``, ``precedents``)
         """
+        print(f"Route for {query}")
         cleaned = (query or "").strip()
         if not cleaned:
             raise ValueError("query must be a non-empty string.")
